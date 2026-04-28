@@ -73,35 +73,6 @@ oab_render_reels() {
     print_line "$line3"
 }
 
-oab_place_bandit_bet() {
-    local display_func=${CURRENT_DISPLAY_FUNC:-oab_display_bandit}
-    while true; do
-        dealer_talk "idle"
-        $display_func
-        echo -e "\n  ${TXT[prompt_balance]}: ${YELLOW}${BALANCE}€${NC}"
-        printf "  ${TXT[prompt_bet]}" "$BALANCE"
-        if read input; then
-            if [[ "$input" == "r" ]]; then
-                show_rules "bandit"
-                continue
-            fi
-            if [[ "$input" == "q" ]]; then
-                return 1
-            fi
-
-            if ! [[ "$input" =~ ^[0-9]+$ ]] || [ "$input" -lt 1 ] || [ "$input" -gt $BALANCE ]; then
-                dealer_talk "invalid_bet"
-                $display_func
-                sleep 2
-                continue
-            fi
-
-            BET=$input
-            BALANCE=$((BALANCE - BET))
-            return 0
-        fi
-    done
-}
 
 oab_spin_reels() {
     local delay=0.05
@@ -180,7 +151,7 @@ play_bandit() {
         [ $BALANCE -gt $MAX_BALANCE ] && MAX_BALANCE=$BALANCE
         update_random
 
-        oab_place_bandit_bet || break
+        place_bet || break
         oab_spin_reels
         oab_handle_bandit_outcome
 

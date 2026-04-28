@@ -93,35 +93,6 @@ bj_calculate_hand() {
     echo "$total"
 }
 
-bj_place_bet() {
-    local display_func=${CURRENT_DISPLAY_FUNC:-bj_display_board}
-    while true; do
-        dealer_talk "idle"
-        $display_func "false"
-        echo -e "\n  ${TXT[prompt_balance]}: ${YELLOW}${BALANCE}€${NC}"
-        printf "  ${TXT[prompt_bet]}" "$BALANCE"
-        if read input; then
-            if [[ "$input" == "r" ]]; then
-                show_rules "$CURRENT_GAME"
-                continue
-            fi
-            if [[ "$input" == "q" ]]; then
-                return 1
-            fi
-
-            if ! [[ "$input" =~ ^[0-9]+$ ]] || [ "$input" -lt 1 ] || [ "$input" -gt $BALANCE ]; then
-                dealer_talk "invalid_bet"
-                $display_func "false"
-                sleep 2
-                continue
-            fi
-
-            BET=$input
-            BALANCE=$((BALANCE - BET))
-            return 0
-        fi
-    done
-}
 
 bj_deal_initial() {
     PLAYER_HAND=()
@@ -284,7 +255,7 @@ play_blackjack() {
         update_random
         [ $BALANCE -gt $MAX_BALANCE ] && MAX_BALANCE=$BALANCE
 
-        bj_place_bet || break
+        place_bet || break
         bj_deal_initial
 
         if bj_check_initial_blackjack; then

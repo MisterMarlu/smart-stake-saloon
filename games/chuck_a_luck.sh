@@ -113,10 +113,10 @@ play_chuck_a_luck() {
         local rigged="false"
         if [[ ${tilt,,} == "t" ]]; then
             # 15% chance caught
-#            if (( RANDOM % 100 < 15 )); then
+            if (( RANDOM % 100 < 15 )); then
                 caught_cheating "${TXT[chuck_msg_caught]}"
                 return
-#            fi
+            fi
             rigged="true"
         fi
 

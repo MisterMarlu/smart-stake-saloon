@@ -38,7 +38,7 @@ init_deck() {
     DECK=()
     local suits=("$HEARTS" "$DIAMONDS" "$SPADES" "$CLUBS")
     local ranks=("2" "3" "4" "5" "6" "7" "8" "9" "10" "J" "Q" "K" "A")
-    local num_decks=${1:6}
+    local num_decks=${1:-1}
 
     for ((d=0; d<num_decks; d++)); do
         for s in "${suits[@]}"; do
@@ -73,7 +73,14 @@ draw_card() {
 # Get Card Value (Common)
 get_card_value() {
     local card=$1
-    local rank=${card%?}
+    local rank=""
+    for s in "$HEARTS" "$DIAMONDS" "$SPADES" "$CLUBS"; do
+        if [[ "$card" == *"$s" ]]; then
+            rank="${card%$s}"
+            break
+        fi
+    done
+
     if [[ "$rank" =~ ^[0-9]+$ ]]; then
         echo "$rank"
     elif [[ "$rank" == "A" ]]; then
@@ -176,4 +183,35 @@ whiskey_watch_event() {
 
 update_random() {
     RANDOM=$(date +%s)
+}
+
+place_bet() {
+    local display_func=${CURRENT_DISPLAY_FUNC}
+    while true; do
+        dealer_talk "idle"
+        $display_func "false"
+        echo -e "\n  ${TXT[prompt_balance]}: ${YELLOW}${BALANCE}€${NC}"
+        printf "  ${TXT[prompt_bet]}" "$BALANCE"
+        if read input; then
+            if [[ "$input" == "r" ]]; then
+                show_rules "$CURRENT_GAME"
+                continue
+            fi
+            if [[ "$input" == "q" ]]; then
+                return 1
+            fi
+
+            if ! [[ "$input" =~ ^[0-9]+$ ]] || [ "$input" -lt 1 ] || [ "$input" -gt $BALANCE ]; then
+                update_random
+                dealer_talk "invalid_bet"
+                $display_func "false"
+                sleep 2
+                continue
+            fi
+
+            BET=$input
+            BALANCE=$((BALANCE - BET))
+            return 0
+        fi
+    done
 }

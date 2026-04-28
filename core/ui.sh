@@ -29,8 +29,14 @@ render_cards() {
             line5+=" $BOX_V░░░░░░░░░$BOX_V "
             line6+=" $BOX_BL$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_BR "
         else
-            local rank=${card%?}
-            local suit=${card#$rank}
+            local suit=""
+            for s in "$HEARTS" "$DIAMONDS" "$SPADES" "$CLUBS"; do
+                if [[ "$card" == *"$s" ]]; then
+                    suit="$s"
+                    break
+                fi
+            done
+            local rank="${card%$suit}"
 
             # Formatting for rank
             local r_top="$rank"
@@ -290,7 +296,7 @@ EOF
 }
 
 caught_cheating() {
-    local caught_msg=${1:TXT[msg_caught]}
+    local caught_msg=${1:-${TXT[msg_caught]}}
     update_board_width
     clear_screen
     echo -e "${RED}"
@@ -314,6 +320,7 @@ EOF
     echo -e "\n          ${YELLOW}N I C H T   W I L L K O M M E N${NC}"
     echo -e "\n  Du wurdest beim Schummeln erwischt und aus dem Saloon geworfen."
     echo -e "  Dein Steckbrief hängt nun an jeder Tür."
+    tput cnorm
     exit 0
 }
 

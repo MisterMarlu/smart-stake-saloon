@@ -4,7 +4,13 @@
 
 th_get_poker_value() {
     local card=$1
-    local rank=${card%?}
+    local rank=""
+    for s in "$HEARTS" "$DIAMONDS" "$SPADES" "$CLUBS"; do
+        if [[ "$card" == *"$s" ]]; then
+            rank="${card%$s}"
+            break
+        fi
+    done
     case $rank in
         A) echo 14 ;;
         K) echo 13 ;;
@@ -16,7 +22,12 @@ th_get_poker_value() {
 }
 
 th_get_poker_suit() {
-    echo "${1: -1}"
+    for s in "$HEARTS" "$DIAMONDS" "$SPADES" "$CLUBS"; do
+        if [[ "$1" == *"$s" ]]; then
+            echo "$s"
+            return
+        fi
+    done
 }
 
 th_evaluate_poker_hand() {
