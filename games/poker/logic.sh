@@ -280,6 +280,8 @@ th_poker_betting_round() {
     while true; do
         dealer_talk "idle"
         th_display_poker_board "false"
+        local p_score=$(th_evaluate_poker_hand "${PLAYER_HAND[@]}" "${COMMUNITY_CARDS[@]}")
+        echo -e "  ${TXT[label_your_hand]}: $(th_get_hand_name $p_score)"
         printf "  %s" "${TXT[poker_prompt_bet]}"
         read -n 1 -s choice
         echo ""
