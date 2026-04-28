@@ -69,9 +69,19 @@ cal_display_chuck_board() {
     draw_line "$BOX_BL" "$BOX_H" "$BOX_BR"
 }
 
+chuck_render_rules() {
+    print_line "  ${YELLOW}CHUCK-A-LUCK${NC}"
+    print_line ""
+    print_line "  ${TXT[rules_chuck_1]}"
+    print_line "  ${TXT[rules_chuck_2]}"
+    print_line "  ${TXT[rules_chuck_3]}"
+    print_line "  ${TXT[rules_chuck_4]}"
+}
+
 play_chuck_a_luck() {
     CURRENT_GAME="chuck"
     CURRENT_DISPLAY_FUNC="cal_display_chuck_board"
+    CURRENT_GAME_RULES="chuck_render_rules"
     DEALER_MESSAGE="${TXT[chuck_msg_welcome]}"
     CHOSEN_NUMBER=0
     CHUCK_DICE=(0 0 0)
@@ -191,4 +201,4 @@ play_chuck_a_luck() {
     done
 }
 
-register_game "${TXT[menu_chuck]}" "play_chuck_a_luck" "cal_display_chuck_board"
+register_game "chuck" "${TXT[menu_chuck]}" "play_chuck_a_luck" "cal_display_chuck_board" "chuck_render_rules"

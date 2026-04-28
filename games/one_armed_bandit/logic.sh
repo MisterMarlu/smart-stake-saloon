@@ -141,9 +141,19 @@ oab_handle_bandit_outcome() {
     fi
 }
 
+bandit_render_rules() {
+    print_line "  ${YELLOW}EINARMIGER BANDIT${NC}"
+    print_line ""
+    print_line "  ${TXT[rules_bandit_1]}"
+    print_line "  ${TXT[rules_bandit_2]}"
+    print_line "  ${TXT[rules_bandit_3]}"
+    print_line "  ${TXT[rules_bandit_4]}"
+}
+
 play_bandit() {
     CURRENT_GAME="bandit"
     CURRENT_DISPLAY_FUNC="oab_display_bandit"
+    CURRENT_GAME_RULES="bandit_render_rules"
     BANDIT_REELS=("?" "?" "?")
     DEALER_MESSAGE="${TXT[bandit_msg_welcome]}"
 
@@ -178,4 +188,4 @@ play_bandit() {
     sleep 2
 }
 
-register_game "${TXT[menu_bandit]}" "play_bandit" "oab_display_bandit"
+register_game "bandit" "${TXT[menu_bandit]}" "play_bandit" "oab_display_bandit" "bandit_render_rules"

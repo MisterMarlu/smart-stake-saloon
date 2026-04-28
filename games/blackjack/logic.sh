@@ -244,9 +244,20 @@ bj_handle_outcome() {
     fi
 }
 
+bj_render_rules() {
+    print_line "  ${YELLOW}BLACKJACK${NC}"
+    print_line ""
+    print_line "  ${TXT[rules_blackjack_1]}"
+    print_line "  ${TXT[rules_blackjack_2]}"
+    print_line "  ${TXT[rules_blackjack_3]}"
+    print_line "  ${TXT[rules_blackjack_4]}"
+    print_line "  ${TXT[rules_blackjack_5]}"
+}
+
 play_blackjack() {
     CURRENT_GAME="blackjack"
     CURRENT_DISPLAY_FUNC="bj_display_board"
+    CURRENT_GAME_RULES="bj_render_rules"
     init_deck 6
     shuffle_deck
     DEALER_MESSAGE="${TXT[welcome_msg]}"
@@ -285,4 +296,4 @@ play_blackjack() {
     sleep 2
 }
 
-register_game "${TXT[menu_blackjack]}" "play_blackjack" "bj_display_board"
+register_game "blackjack" "${TXT[menu_blackjack]}" "play_blackjack" "bj_display_board" "bj_render_rules"

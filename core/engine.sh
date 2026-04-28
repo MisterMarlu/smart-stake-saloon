@@ -20,17 +20,22 @@ REVEAL_DEALER_STATE="false"
 CHOSEN_NUMBER=0
 CHUCK_DICE=(0 0 0)
 CURRENT_GAME=""
+CURRENT_GAME_RULES=""
 BOARD_WIDTH=72
 
 # Game registration
+GAMES_IDS=()
 GAMES_NAMES=()
 GAMES_CMDS=()
 GAMES_DISPLAYS=()
+GAMES_RULES=()
 
 register_game() {
-    GAMES_NAMES+=("$1")
-    GAMES_CMDS+=("$2")
-    GAMES_DISPLAYS+=("$3")
+    GAMES_IDS+=("$1")
+    GAMES_NAMES+=("$2")
+    GAMES_CMDS+=("$3")
+    GAMES_DISPLAYS+=("$4")
+    GAMES_RULES+=("$5")
 }
 
 # Initialize Deck

@@ -304,9 +304,45 @@ th_poker_betting_round() {
     done
 }
 
+poker_render_rules() {
+    print_line "  ${YELLOW}TEXAS HOLD'EM${NC}"
+    print_line ""
+    print_line "  ${TXT[rules_poker_1]}"
+    print_line "  ${TXT[rules_poker_2]}"
+    print_line "  ${TXT[rules_poker_3]}"
+    print_line "  ${TXT[rules_poker_4]}"
+    print_line ""
+    print_line "  ${YELLOW}${TXT[rules_poker_5]}${NC}"
+
+    # Simple table formatting
+    local table_w=$((BOARD_WIDTH - 6))
+    local col1_w=18
+    local col2_w=$((table_w - col1_w - 4))
+
+    print_line "  $(printf '%.0s─' $(seq 1 $table_w))"
+    local header=$(printf "   ${YELLOW}%-*s${NC} ║ ${YELLOW}%-*s${NC}" $col1_w "Hand" $col2_w "Beschreibung")
+    print_line "$header"
+    print_line "  $(printf '%.0s─' $(seq 1 $table_w))"
+
+    for i in {1..10}; do
+        local entry="${TXT[rules_poker_rank_$i]}"
+        local name="${entry%%|*}"
+        local desc="${entry##*|}"
+
+        # Multi-byte compensation for alignment
+        local n_extra=$(( $(LC_ALL=C printf "%s" "$name" | wc -c) - ${#name} ))
+        local d_extra=$(( $(LC_ALL=C printf "%s" "$desc" | wc -c) - ${#desc} ))
+
+        local row=$(printf "   %-*s ║ %-*s" $((col1_w + n_extra)) "$name" $((col2_w + d_extra)) "$desc")
+        print_line "$row"
+    done
+    print_line "  $(printf '%.0s─' $(seq 1 $table_w))"
+}
+
 play_texas_holdem() {
     CURRENT_GAME="poker"
     CURRENT_DISPLAY_FUNC="th_display_poker_board"
+    CURRENT_GAME_RULES="poker_render_rules"
     DEALER_MESSAGE="${TXT[poker_msg_welcome]}"
     init_deck
     shuffle_deck
@@ -443,4 +479,4 @@ play_texas_holdem() {
     done
 }
 
-register_game "${TXT[menu_poker]}" "play_texas_holdem" "th_display_poker_board"
+register_game "poker" "${TXT[menu_poker]}" "play_texas_holdem" "th_display_poker_board" "poker_render_rules"
