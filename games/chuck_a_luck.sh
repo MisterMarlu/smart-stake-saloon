@@ -137,6 +137,7 @@ play_chuck_a_luck() {
 
     while [ $BALANCE -gt 0 ]; do
         [ $BALANCE -gt $MAX_BALANCE ] && MAX_BALANCE=$BALANCE
+        update_random
         REVEAL_DEALER_STATE="false"
         CHOSEN_NUMBER=0
         CHUCK_DICE=(0 0 0)

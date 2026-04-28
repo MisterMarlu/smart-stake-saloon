@@ -281,6 +281,7 @@ play_blackjack() {
     DEALER_MESSAGE="${TXT[welcome_msg]}"
 
     while [ $BALANCE -gt 0 ]; do
+        update_random
         [ $BALANCE -gt $MAX_BALANCE ] && MAX_BALANCE=$BALANCE
 
         place_bet || break

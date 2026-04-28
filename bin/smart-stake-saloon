@@ -64,6 +64,13 @@ run_doctor() {
         echo "[!] Git is NOT available"
     fi
 
+    # tput (ncurses)
+    if command -v tput >/dev/null 2>&1; then
+        echo "[✓] tput is available"
+    else
+        echo "[!] tput is NOT available (cursor hiding might not work)"
+    fi
+
     # Install Dir
     if [[ -d "$INSTALL_DIR" ]]; then
         echo "[✓] Install directory exists: $INSTALL_DIR"

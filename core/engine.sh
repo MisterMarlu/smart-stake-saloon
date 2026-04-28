@@ -173,3 +173,7 @@ whiskey_watch_event() {
         fi
     fi
 }
+
+update_random() {
+    RANDOM=$(date +%s)
+}

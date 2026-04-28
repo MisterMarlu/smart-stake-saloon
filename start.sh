@@ -41,8 +41,6 @@ EOF
             echo -e "  $((i+1))) ${GAMES_NAMES[$i]}"
         done
         echo -e "  ${TXT[menu_exit]}"
-        echo ""
-        printf "  > "
         if ! read -n 1 choice; then continue; fi
         echo ""
 
@@ -61,7 +59,12 @@ EOF
 }
 
 play_game() {
-    RANDOM=$(date +%s)
+    # Hide cursor
+    tput civis
+    trap 'tput cnorm; exit 130' SIGINT
+    trap 'tput cnorm; exit 143' SIGTERM
+
+    update_random
     if (( RANDOM % 1000 == 0 )); then
         DEALER_NAME="Kay Snider"
         DEALER_MESSAGE="Was willst du hier, du kleiner Wicht?"
@@ -69,6 +72,9 @@ play_game() {
     trap handle_sigwinch SIGWINCH
     game_intro
     main_menu
+
+    # Show cursor
+    tput cnorm
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then

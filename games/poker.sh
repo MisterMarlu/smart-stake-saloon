@@ -302,6 +302,7 @@ play_texas_holdem() {
 
     while [ $BALANCE -gt 0 ]; do
         [ $BALANCE -gt $MAX_BALANCE ] && MAX_BALANCE=$BALANCE
+        update_random
         POT=0
         PLAYER_HAND=()
         DEALER_HAND=()

@@ -220,6 +220,14 @@ show_rules() {
             print_line "  ${TXT[rules_chuck_3]}"
             print_line "  ${TXT[rules_chuck_4]}"
             ;;
+        bandit)
+            print_line "  ${YELLOW}EINARMIGER BANDIT${NC}"
+            print_line ""
+            print_line "  ${TXT[rules_bandit_1]}"
+            print_line "  ${TXT[rules_bandit_2]}"
+            print_line "  ${TXT[rules_bandit_3]}"
+            print_line "  ${TXT[rules_bandit_4]}"
+            ;;
     esac
     print_line ""
     print_line "  ${TXT[rules_back]}"

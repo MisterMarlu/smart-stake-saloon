@@ -1,6 +1,6 @@
 # Smart Stake Saloon
 
-Smart Stake Saloon is a modular Bash-based terminal game suite, featuring classics like Blackjack, Texas Hold'em, and Chuck-a-Luck.
+Smart Stake Saloon is a modular Bash-based terminal game suite, featuring classics like Blackjack, Texas Hold'em, Chuck-a-Luck, and One-Armed Bandit.
 
 ## Features
 - Clean terminal UI with ASCII art.
