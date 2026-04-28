@@ -4,7 +4,7 @@
 
 BANDIT_REELS=("?" "?" "?")
 
-display_bandit() {
+oab_display_bandit() {
     update_board_width
     clear_screen
 
@@ -54,14 +54,14 @@ display_bandit() {
     print_line " ${RED}${TXT[label_dealer]} [${DEALER_NAME}]:${NC} \"$DEALER_MESSAGE\""
     print_line ""
     print_line "  ${YELLOW}${TXT[bandit_label_reels]}:${NC}"
-    render_reels "${BANDIT_REELS[@]}"
+    oab_render_reels "${BANDIT_REELS[@]}"
     print_line ""
     print_line "  ${YELLOW}${TXT[label_your_whiskey]}:${NC}"
     render_whiskey $WHISKEY_LEVEL
     draw_line "$BOX_BL" "$BOX_H" "$BOX_BR"
 }
 
-render_reels() {
+oab_render_reels() {
     local r1=$1 r2=$2 r3=$3
 
     local line1="    $BOX_TL$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_TR  $BOX_TL$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_TR  $BOX_TL$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_TR"
@@ -73,8 +73,8 @@ render_reels() {
     print_line "$line3"
 }
 
-place_bandit_bet() {
-    local display_func=${CURRENT_DISPLAY_FUNC:-display_bandit}
+oab_place_bandit_bet() {
+    local display_func=${CURRENT_DISPLAY_FUNC:-oab_display_bandit}
     while true; do
         dealer_talk "idle"
         $display_func
@@ -103,32 +103,32 @@ place_bandit_bet() {
     done
 }
 
-spin_reels() {
+oab_spin_reels() {
     local delay=0.05
     DEALER_MESSAGE="..."
     for i in {1..15}; do
         BANDIT_REELS[0]="${BANDIT_SYMBOLS[$((RANDOM % ${#BANDIT_SYMBOLS[@]}))]}"
         BANDIT_REELS[1]="${BANDIT_SYMBOLS[$((RANDOM % ${#BANDIT_SYMBOLS[@]}))]}"
         BANDIT_REELS[2]="${BANDIT_SYMBOLS[$((RANDOM % ${#BANDIT_SYMBOLS[@]}))]}"
-        display_bandit
+        oab_display_bandit
         sleep $delay
     done
 
     for i in {1..8}; do
         BANDIT_REELS[1]="${BANDIT_SYMBOLS[$((RANDOM % ${#BANDIT_SYMBOLS[@]}))]}"
         BANDIT_REELS[2]="${BANDIT_SYMBOLS[$((RANDOM % ${#BANDIT_SYMBOLS[@]}))]}"
-        display_bandit
+        oab_display_bandit
         sleep $delay
     done
 
     for i in {1..8}; do
         BANDIT_REELS[2]="${BANDIT_SYMBOLS[$((RANDOM % ${#BANDIT_SYMBOLS[@]}))]}"
-        display_bandit
+        oab_display_bandit
         sleep $delay
     done
 }
 
-calculate_payout() {
+oab_calculate_payout() {
     local r1="${BANDIT_REELS[0]}"
     local r2="${BANDIT_REELS[1]}"
     local r3="${BANDIT_REELS[2]}"
@@ -149,8 +149,8 @@ calculate_payout() {
     fi
 }
 
-handle_bandit_outcome() {
-    local multiplier=$(calculate_payout)
+oab_handle_bandit_outcome() {
+    local multiplier=$(oab_calculate_payout)
     if [ "$multiplier" -gt 0 ]; then
         local win_amt=$((BET * multiplier))
         BALANCE=$((BALANCE + win_amt))
@@ -172,7 +172,7 @@ handle_bandit_outcome() {
 
 play_bandit() {
     CURRENT_GAME="bandit"
-    CURRENT_DISPLAY_FUNC="display_bandit"
+    CURRENT_DISPLAY_FUNC="oab_display_bandit"
     BANDIT_REELS=("?" "?" "?")
     DEALER_MESSAGE="${TXT[bandit_msg_welcome]}"
 
@@ -180,11 +180,11 @@ play_bandit() {
         [ $BALANCE -gt $MAX_BALANCE ] && MAX_BALANCE=$BALANCE
         update_random
 
-        place_bandit_bet || break
-        spin_reels
-        handle_bandit_outcome
+        oab_place_bandit_bet || break
+        oab_spin_reels
+        oab_handle_bandit_outcome
 
-        display_bandit
+        oab_display_bandit
         whiskey_watch_event
 
         if [ $BALANCE -le 0 ]; then
@@ -207,4 +207,4 @@ play_bandit() {
     sleep 2
 }
 
-register_game "${TXT[menu_bandit]}" "play_bandit" "display_bandit"
+register_game "${TXT[menu_bandit]}" "play_bandit" "oab_display_bandit"

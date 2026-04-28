@@ -2,7 +2,7 @@
 
 # Texas Hold'em Implementation
 
-get_poker_value() {
+th_get_poker_value() {
     local card=$1
     local rank=${card%?}
     case $rank in
@@ -15,17 +15,17 @@ get_poker_value() {
     esac
 }
 
-get_poker_suit() {
+th_get_poker_suit() {
     echo "${1: -1}"
 }
 
-evaluate_poker_hand() {
+th_evaluate_poker_hand() {
     local cards=("$@")
     local ranks=()
     local suits=()
     for c in "${cards[@]}"; do
-        ranks+=($(get_poker_value "$c"))
-        suits+=($(get_poker_suit "$c"))
+        ranks+=($(th_get_poker_value "$c"))
+        suits+=($(th_get_poker_suit "$c"))
     done
 
     # Sort ranks descending
@@ -69,8 +69,8 @@ evaluate_poker_hand() {
     if [ -n "$flush_suit" ]; then
         local flush_ranks=()
         for c in "${cards[@]}"; do
-            if [ "$(get_poker_suit "$c")" == "$flush_suit" ]; then
-                flush_ranks+=($(get_poker_value "$c"))
+            if [ "$(th_get_poker_suit "$c")" == "$flush_suit" ]; then
+                flush_ranks+=($(th_get_poker_value "$c"))
             fi
         done
         local sorted_flush_ranks=($(printf "%s\n" "${flush_ranks[@]}" | sort -nr))
@@ -183,13 +183,13 @@ evaluate_poker_hand() {
     printf "0%02d%02d%02d%02d%02d" ${sorted_ranks[0]} ${sorted_ranks[1]} ${sorted_ranks[2]} ${sorted_ranks[3]} ${sorted_ranks[4]}
 }
 
-get_hand_name() {
+th_get_hand_name() {
     local score=$1
     local type=${score:0:1}
     echo "${TXT[poker_hand_$type]}"
 }
 
-display_poker_board() {
+th_display_poker_board() {
     local reveal_dealer=$1
     REVEAL_DEALER_STATE=$reveal_dealer
     update_board_width
@@ -264,11 +264,11 @@ display_poker_board() {
     draw_line "$BOX_BL" "$BOX_H" "$BOX_BR"
 }
 
-poker_betting_round() {
+th_poker_betting_round() {
     local round_name=$1
     while true; do
         dealer_talk "idle"
-        display_poker_board "false"
+        th_display_poker_board "false"
         printf "  %s" "${TXT[poker_prompt_bet]}"
         read -n 1 -s choice
         echo ""
@@ -295,7 +295,7 @@ poker_betting_round() {
 
 play_texas_holdem() {
     CURRENT_GAME="poker"
-    CURRENT_DISPLAY_FUNC="display_poker_board"
+    CURRENT_DISPLAY_FUNC="th_display_poker_board"
     DEALER_MESSAGE="${TXT[poker_msg_welcome]}"
     init_deck
     shuffle_deck
@@ -322,7 +322,7 @@ play_texas_holdem() {
         draw_card; DEALER_HAND+=("$LAST_DRAWN_CARD")
 
         # Pre-flop betting
-        poker_betting_round "Pre-flop" || {
+        th_poker_betting_round "Pre-flop" || {
             LOSSES=$((LOSSES + 1)); whiskey_watch_event;
             # Check for quit even after folding
             while true; do
@@ -338,10 +338,10 @@ play_texas_holdem() {
         draw_card; COMMUNITY_CARDS+=("$LAST_DRAWN_CARD")
         draw_card; COMMUNITY_CARDS+=("$LAST_DRAWN_CARD")
         draw_card; COMMUNITY_CARDS+=("$LAST_DRAWN_CARD")
-        display_poker_board "false"
+        th_display_poker_board "false"
         sleep 1
 
-        poker_betting_round "Flop" || {
+        th_poker_betting_round "Flop" || {
             LOSSES=$((LOSSES + 1)); whiskey_watch_event;
             while true; do
                 echo -e "\n  ${TXT[prompt_next_round]}"
@@ -354,10 +354,10 @@ play_texas_holdem() {
         # Turn
         DEALER_MESSAGE="${TXT[poker_msg_turn]}"
         draw_card; COMMUNITY_CARDS+=("$LAST_DRAWN_CARD")
-        display_poker_board "false"
+        th_display_poker_board "false"
         sleep 1
 
-        poker_betting_round "Turn" || {
+        th_poker_betting_round "Turn" || {
             LOSSES=$((LOSSES + 1)); whiskey_watch_event;
             while true; do
                 echo -e "\n  ${TXT[prompt_next_round]}"
@@ -370,10 +370,10 @@ play_texas_holdem() {
         # River
         DEALER_MESSAGE="${TXT[poker_msg_river]}"
         draw_card; COMMUNITY_CARDS+=("$LAST_DRAWN_CARD")
-        display_poker_board "false"
+        th_display_poker_board "false"
         sleep 1
 
-        poker_betting_round "River" || {
+        th_poker_betting_round "River" || {
             LOSSES=$((LOSSES + 1)); whiskey_watch_event;
             while true; do
                 echo -e "\n  ${TXT[prompt_next_round]}"
@@ -385,28 +385,28 @@ play_texas_holdem() {
 
         # Showdown
         REVEAL_DEALER_STATE="true"
-        local p_score=$(evaluate_poker_hand "${PLAYER_HAND[@]}" "${COMMUNITY_CARDS[@]}")
-        local d_score=$(evaluate_poker_hand "${DEALER_HAND[@]}" "${COMMUNITY_CARDS[@]}")
+        local p_score=$(th_evaluate_poker_hand "${PLAYER_HAND[@]}" "${COMMUNITY_CARDS[@]}")
+        local d_score=$(th_evaluate_poker_hand "${DEALER_HAND[@]}" "${COMMUNITY_CARDS[@]}")
 
-        display_poker_board "true"
-        echo -e "  ${TXT[label_your_hand]}: $(get_hand_name $p_score)"
-        echo -e "  ${TXT[label_dealer]}: $(get_hand_name $d_score)"
+        th_display_poker_board "true"
+        echo -e "  ${TXT[label_your_hand]}: $(th_get_hand_name $p_score)"
+        echo -e "  ${TXT[label_dealer]}: $(th_get_hand_name $d_score)"
         sleep 2
 
         if [[ "$p_score" > "$d_score" ]]; then
             dealer_talk "loss"
-            display_poker_board "true"
+            th_display_poker_board "true"
             printf "${GREEN}  ${TXT[poker_msg_win]}${NC}\n" "$POT"
             BALANCE=$((BALANCE + POT))
             WINS=$((WINS + 1))
         elif [[ "$p_score" < "$d_score" ]]; then
             dealer_talk "win"
-            display_poker_board "true"
+            th_display_poker_board "true"
             printf "${RED}  ${TXT[poker_msg_loss]}${NC}\n" "$POT"
             LOSSES=$((LOSSES + 1))
         else
             dealer_talk "push"
-            display_poker_board "true"
+            th_display_poker_board "true"
             echo -e "${YELLOW}  ${TXT[poker_msg_push]}${NC}"
             BALANCE=$((BALANCE + POT / 2))
             PUSHES=$((PUSHES + 1))
@@ -426,4 +426,4 @@ play_texas_holdem() {
     done
 }
 
-register_game "${TXT[menu_poker]}" "play_texas_holdem" "display_poker_board"
+register_game "${TXT[menu_poker]}" "play_texas_holdem" "th_display_poker_board"
