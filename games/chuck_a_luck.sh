@@ -2,38 +2,7 @@
 
 # Chuck-a-Luck Implementation
 
-render_dice() {
-    local show=$1
-    shift
-    local dice=("$@")
-    local lines=("" "" "" "" "")
-
-    for d in "${dice[@]}"; do
-        local -a template
-        if [ "$show" == "false" ]; then
-            template=("$BOX_TL$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_TR" "║░░░░░░░░░║" "║░░░░░░░░░║" "║░░░░░░░░░║" "$BOX_BL$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_BR")
-        else
-            case $d in
-                1) template=("$BOX_TL$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_TR" "║         ║" "║    ●    ║" "║         ║" "$BOX_BL$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_BR") ;;
-                2) template=("$BOX_TL$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_TR" "║  ●      ║" "║         ║" "║      ●  ║" "$BOX_BL$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_BR") ;;
-                3) template=("$BOX_TL$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_TR" "║  ●      ║" "║    ●    ║" "║      ●  ║" "$BOX_BL$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_BR") ;;
-                4) template=("$BOX_TL$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_TR" "║  ●   ●  ║" "║         ║" "║  ●   ●  ║" "$BOX_BL$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_BR") ;;
-                5) template=("$BOX_TL$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_TR" "║  ●   ●  ║" "║    ●    ║" "║  ●   ●  ║" "$BOX_BL$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_BR") ;;
-                6) template=("$BOX_TL$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_TR" "║  ●   ●  ║" "║  ●   ●  ║" "║  ●   ●  ║" "$BOX_BL$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_BR") ;;
-                *) template=("$BOX_TL$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_TR" "║         ║" "║         ║" "║         ║" "$BOX_BL$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_BR") ;;
-            esac
-        fi
-        for i in {0..4}; do
-            lines[$i]+=" ${template[$i]} "
-        done
-    done
-
-    for i in {0..4}; do
-        print_line "${lines[$i]}"
-    done
-}
-
-display_chuck_board() {
+cal_display_chuck_board() {
     local reveal=$1
     REVEAL_DEALER_STATE=$reveal
     update_board_width
@@ -100,36 +69,9 @@ display_chuck_board() {
     draw_line "$BOX_BL" "$BOX_H" "$BOX_BR"
 }
 
-caught_cheating() {
-    update_board_width
-    clear_screen
-    echo -e "${RED}"
-    type_text "  ${TXT[chuck_msg_caught]}" 0.1
-    sleep 1
-    type_text "  Der Dealer zieht seine Waffe..." 0.1
-    sleep 1
-    type_text "  * PENG! *" 0.05
-    sleep 2
-
-    clear_screen
-    echo -e "${RED}"
-    cat << "EOF"
-  _____ ______  _____ _    _  _____ _    _ _______
- / ____|  ____|/ ____| |  | |/ ____| |  | |__   __|
-| |  __| |__  | (___ | |  | | |    | |__| |  | |
-| | |_ |  __|  \___ \| |  | | |    |  __  |  | |
-| |__| | |____ ____) | |__| | |____| |  | |  | |
- \_____|______|_____/ \____/ \_____|_|  |_|  |_|
-EOF
-    echo -e "\n          ${YELLOW}N I C H T   W I L L K O M M E N${NC}"
-    echo -e "\n  Du wurdest beim Schummeln erwischt und aus dem Saloon geworfen."
-    echo -e "  Dein Steckbrief hängt nun an jeder Tür."
-    exit 0
-}
-
 play_chuck_a_luck() {
     CURRENT_GAME="chuck"
-    CURRENT_DISPLAY_FUNC="display_chuck_board"
+    CURRENT_DISPLAY_FUNC="cal_display_chuck_board"
     DEALER_MESSAGE="${TXT[chuck_msg_welcome]}"
     CHOSEN_NUMBER=0
     CHUCK_DICE=(0 0 0)
@@ -147,7 +89,7 @@ play_chuck_a_luck() {
 
         # Choose number
         while true; do
-            display_chuck_board "false"
+            cal_display_chuck_board "false"
             printf "  ${TXT[chuck_prompt_number]}"
             if read -n 1 input; then
                 echo ""
@@ -163,7 +105,7 @@ play_chuck_a_luck() {
         done
 
         # Tilt?
-        display_chuck_board "false"
+        cal_display_chuck_board "false"
         printf "  ${TXT[chuck_prompt_tilt]}"
         if ! read -n 1 -s tilt; then tilt="n"; fi
         echo ""
@@ -171,10 +113,10 @@ play_chuck_a_luck() {
         local rigged="false"
         if [[ ${tilt,,} == "t" ]]; then
             # 15% chance caught
-            if (( RANDOM % 100 < 15 )); then
-                caught_cheating
+#            if (( RANDOM % 100 < 15 )); then
+                caught_cheating "${TXT[chuck_msg_caught]}"
                 return
-            fi
+#            fi
             rigged="true"
         fi
 
@@ -198,7 +140,7 @@ play_chuck_a_luck() {
             [ "$d" -eq "$CHOSEN_NUMBER" ] && ((matches++))
         done
 
-        display_chuck_board "true"
+        cal_display_chuck_board "true"
         sleep 1
 
         if [ $matches -eq 1 ]; then
@@ -206,7 +148,7 @@ play_chuck_a_luck() {
             BALANCE=$((BALANCE + win * 2))
             WINS=$((WINS + 1))
             dealer_talk "loss"
-            display_chuck_board "true"
+            cal_display_chuck_board "true"
             printf "${GREEN}  "
             printf "${TXT[chuck_msg_win_1]}" "$win"
             echo -e "${NC}"
@@ -215,7 +157,7 @@ play_chuck_a_luck() {
             BALANCE=$((BALANCE + win + BET))
             WINS=$((WINS + 1))
             dealer_talk "loss"
-            display_chuck_board "true"
+            cal_display_chuck_board "true"
             printf "${GREEN}  "
             printf "${TXT[chuck_msg_win_2]}" "$win"
             echo -e "${NC}"
@@ -224,14 +166,14 @@ play_chuck_a_luck() {
             BALANCE=$((BALANCE + win + BET))
             WINS=$((WINS + 1))
             dealer_talk "loss"
-            display_chuck_board "true"
+            cal_display_chuck_board "true"
             printf "${GREEN}  "
             printf "${TXT[chuck_msg_win_3]}" "$win"
             echo -e "${NC}"
         else
             LOSSES=$((LOSSES + 1))
             dealer_talk "win"
-            display_chuck_board "true"
+            cal_display_chuck_board "true"
             printf "${RED}  ${TXT[chuck_msg_loss]}${NC}\n"
         fi
 
@@ -249,4 +191,4 @@ play_chuck_a_luck() {
     done
 }
 
-register_game "${TXT[menu_chuck]}" "play_chuck_a_luck" "display_chuck_board"
+register_game "${TXT[menu_chuck]}" "play_chuck_a_luck" "cal_display_chuck_board"

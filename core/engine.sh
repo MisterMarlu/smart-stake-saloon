@@ -38,7 +38,7 @@ init_deck() {
     DECK=()
     local suits=("$HEARTS" "$DIAMONDS" "$SPADES" "$CLUBS")
     local ranks=("2" "3" "4" "5" "6" "7" "8" "9" "10" "J" "Q" "K" "A")
-    local num_decks=6
+    local num_decks=${1:6}
 
     for ((d=0; d<num_decks; d++)); do
         for s in "${suits[@]}"; do

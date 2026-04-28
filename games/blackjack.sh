@@ -2,7 +2,7 @@
 
 # Blackjack Implementation
 
-display_board() {
+bj_display_board() {
     local reveal_dealer=$1
     REVEAL_DEALER_STATE=$reveal_dealer
     update_board_width
@@ -56,7 +56,7 @@ display_board() {
 
     if [ "$reveal_dealer" == "true" ]; then
         render_cards "false" "${DEALER_HAND[@]}"
-        print_line "  ${TXT[label_dealer_value]}: ${YELLOW}$(calculate_hand "${DEALER_HAND[@]}")${NC}"
+        print_line "  ${TXT[label_dealer_value]}: ${YELLOW}$(bj_calculate_hand "${DEALER_HAND[@]}")${NC}"
     else
         render_cards "true" "${DEALER_HAND[@]}"
         print_line "  ${TXT[label_dealer_value]}: ${YELLOW}${TXT[label_unknown]}${NC}"
@@ -65,7 +65,7 @@ display_board() {
     print_line ""
     print_line "  ${GREEN}${TXT[label_your_hand]}:${NC}"
     render_cards "false" "${PLAYER_HAND[@]}"
-    print_line "  ${TXT[label_your_value]}: ${YELLOW}$(calculate_hand "${PLAYER_HAND[@]}")${NC}"
+    print_line "  ${TXT[label_your_value]}: ${YELLOW}$(bj_calculate_hand "${PLAYER_HAND[@]}")${NC}"
 
     print_line ""
     print_line "  ${YELLOW}${TXT[label_your_whiskey]}:${NC}"
@@ -73,7 +73,7 @@ display_board() {
     draw_line "$BOX_BL" "$BOX_H" "$BOX_BR"
 }
 
-calculate_hand() {
+bj_calculate_hand() {
     local hand=("$@")
     local total=0
     local aces=0
@@ -93,8 +93,8 @@ calculate_hand() {
     echo "$total"
 }
 
-place_bet() {
-    local display_func=${CURRENT_DISPLAY_FUNC:-display_board}
+bj_place_bet() {
+    local display_func=${CURRENT_DISPLAY_FUNC:-bj_display_board}
     while true; do
         dealer_talk "idle"
         $display_func "false"
@@ -123,33 +123,33 @@ place_bet() {
     done
 }
 
-deal_initial() {
+bj_deal_initial() {
     PLAYER_HAND=()
     DEALER_HAND=()
     DEALER_MESSAGE="${TXT[msg_initial_deal]}"
 
-    draw_card; PLAYER_HAND+=("$LAST_DRAWN_CARD"); display_board "false"; sleep 0.5
-    draw_card; DEALER_HAND+=("$LAST_DRAWN_CARD"); display_board "false"; sleep 0.5
-    draw_card; PLAYER_HAND+=("$LAST_DRAWN_CARD"); display_board "false"; sleep 0.5
-    draw_card; DEALER_HAND+=("$LAST_DRAWN_CARD"); display_board "false"; sleep 0.5
+    draw_card; PLAYER_HAND+=("$LAST_DRAWN_CARD"); bj_display_board "false"; sleep 0.5
+    draw_card; DEALER_HAND+=("$LAST_DRAWN_CARD"); bj_display_board "false"; sleep 0.5
+    draw_card; PLAYER_HAND+=("$LAST_DRAWN_CARD"); bj_display_board "false"; sleep 0.5
+    draw_card; DEALER_HAND+=("$LAST_DRAWN_CARD"); bj_display_board "false"; sleep 0.5
 }
 
-check_initial_blackjack() {
-    local p_val=$(calculate_hand "${PLAYER_HAND[@]}")
-    local d_val=$(calculate_hand "${DEALER_HAND[@]}")
+bj_check_initial_blackjack() {
+    local p_val=$(bj_calculate_hand "${PLAYER_HAND[@]}")
+    local d_val=$(bj_calculate_hand "${DEALER_HAND[@]}")
 
     if [ $p_val -eq 21 ]; then
-        display_board "true"
+        bj_display_board "true"
         sleep 1
         if [ $d_val -eq 21 ]; then
             dealer_talk "push"
-            display_board "true"
+            bj_display_board "true"
             echo -e "${YELLOW}  ${TXT[msg_both_blackjack]}${NC}"
             BALANCE=$((BALANCE + BET))
             PUSHES=$((PUSHES + 1))
         else
             dealer_talk "blackjack"
-            display_board "true"
+            bj_display_board "true"
             local win_amt=$((BET * 3 / 2))
             local total_win=$((BET + win_amt))
             printf "${GREEN}  ${TXT[msg_blackjack_win]}${NC}\n" "$win_amt"
@@ -162,10 +162,10 @@ check_initial_blackjack() {
     return 0
 }
 
-player_turn() {
+bj_player_turn() {
     local can_double=1
     while true; do
-        display_board "false"
+        bj_display_board "false"
         local opts="${TXT[options_hit]}, ${TXT[options_stand]}"
         [ $can_double -eq 1 ] && [ $BALANCE -ge $BET ] && opts+=", ${TXT[options_double]}"
         [ $can_double -eq 1 ] && opts+=", ${TXT[options_surrender]}"
@@ -183,10 +183,10 @@ player_turn() {
             h)
                 dealer_talk "idle"
                 draw_card; PLAYER_HAND+=("$LAST_DRAWN_CARD")
-                display_board "false"
+                bj_display_board "false"
                 sleep 0.5
                 can_double=0
-                if [ $(calculate_hand "${PLAYER_HAND[@]}") -gt 21 ]; then
+                if [ $(bj_calculate_hand "${PLAYER_HAND[@]}") -gt 21 ]; then
                     return 1
                 fi
                 ;;
@@ -198,9 +198,9 @@ player_turn() {
                     BALANCE=$((BALANCE - BET))
                     BET=$((BET * 2))
                     draw_card; PLAYER_HAND+=("$LAST_DRAWN_CARD")
-                    display_board "false"
+                    bj_display_board "false"
                     sleep 1
-                    [ $(calculate_hand "${PLAYER_HAND[@]}") -gt 21 ] && return 1
+                    [ $(bj_calculate_hand "${PLAYER_HAND[@]}") -gt 21 ] && return 1
                     return 0
                 fi
                 ;;
@@ -213,59 +213,59 @@ player_turn() {
     done
 }
 
-dealer_turn() {
-    DEALER_MESSAGE="${TXT[msg_dealer_turn]}"
-    display_board "true"
+bj_dealer_turn() {
+    DEALER_MESSAGE="${TXT[msg_bj_dealer_turn]}"
+    bj_display_board "true"
     sleep 1
-    while [ $(calculate_hand "${DEALER_HAND[@]}") -lt 17 ]; do
+    while [ $(bj_calculate_hand "${DEALER_HAND[@]}") -lt 17 ]; do
         DEALER_MESSAGE="${TXT[msg_dealer_draw]}"
-        display_board "true"
+        bj_display_board "true"
         sleep 1
         draw_card; DEALER_HAND+=("$LAST_DRAWN_CARD")
-        display_board "true"
+        bj_display_board "true"
         sleep 1
     done
 }
 
-handle_outcome() {
+bj_handle_outcome() {
     local status=$1
     if [ "$status" -eq 2 ]; then
-        display_board "true"
+        bj_display_board "true"
         local refund=$((BET / 2))
         printf "${YELLOW}  ${TXT[msg_surrendered]}${NC}\n" "$refund"
         BALANCE=$((BALANCE + refund))
         LOSSES=$((LOSSES + 1))
     elif [ "$status" -eq 1 ]; then
         dealer_talk "bust"
-        display_board "true"
+        bj_display_board "true"
         sleep 1
         printf "${RED}  ${TXT[msg_bust]}${NC}\n" "$BET"
         LOSSES=$((LOSSES + 1))
     else
-        dealer_turn
-        local p_final=$(calculate_hand "${PLAYER_HAND[@]}")
-        local d_final=$(calculate_hand "${DEALER_HAND[@]}")
+        bj_dealer_turn
+        local p_final=$(bj_calculate_hand "${PLAYER_HAND[@]}")
+        local d_final=$(bj_calculate_hand "${DEALER_HAND[@]}")
 
         if [ $d_final -gt 21 ]; then
             dealer_talk "bust"
-            display_board "true"
+            bj_display_board "true"
             printf "${GREEN}  ${TXT[msg_dealer_bust]}${NC}\n" "$BET"
             BALANCE=$((BALANCE + BET * 2))
             WINS=$((WINS + 1))
         elif [ $p_final -gt $d_final ]; then
             dealer_talk "loss"
-            display_board "true"
+            bj_display_board "true"
             printf "${GREEN}  ${TXT[msg_win]}${NC}\n" "$BET"
             BALANCE=$((BALANCE + BET * 2))
             WINS=$((WINS + 1))
         elif [ $d_final -gt $p_final ]; then
             dealer_talk "win"
-            display_board "true"
+            bj_display_board "true"
             printf "${RED}  ${TXT[msg_dealer_win]}${NC}\n" "$d_final" "$BET"
             LOSSES=$((LOSSES + 1))
         else
             dealer_talk "push"
-            display_board "true"
+            bj_display_board "true"
             echo -e "${YELLOW}  ${TXT[msg_push]}${NC}"
             BALANCE=$((BALANCE + BET))
             PUSHES=$((PUSHES + 1))
@@ -275,8 +275,8 @@ handle_outcome() {
 
 play_blackjack() {
     CURRENT_GAME="blackjack"
-    CURRENT_DISPLAY_FUNC="display_board"
-    init_deck
+    CURRENT_DISPLAY_FUNC="bj_display_board"
+    init_deck 6
     shuffle_deck
     DEALER_MESSAGE="${TXT[welcome_msg]}"
 
@@ -284,12 +284,12 @@ play_blackjack() {
         update_random
         [ $BALANCE -gt $MAX_BALANCE ] && MAX_BALANCE=$BALANCE
 
-        place_bet || break
-        deal_initial
+        bj_place_bet || break
+        bj_deal_initial
 
-        if check_initial_blackjack; then
-            player_turn
-            handle_outcome $?
+        if bj_check_initial_blackjack; then
+            bj_player_turn
+            bj_handle_outcome $?
         fi
 
         whiskey_watch_event
@@ -314,4 +314,4 @@ play_blackjack() {
     sleep 2
 }
 
-register_game "${TXT[menu_blackjack]}" "play_blackjack" "display_board"
+register_game "${TXT[menu_blackjack]}" "play_blackjack" "bj_display_board"

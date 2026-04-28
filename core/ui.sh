@@ -60,6 +60,37 @@ render_cards() {
     print_line "$line6"
 }
 
+render_dice() {
+    local show=$1
+    shift
+    local dice=("$@")
+    local lines=("" "" "" "" "")
+
+    for d in "${dice[@]}"; do
+        local -a template
+        if [ "$show" == "false" ]; then
+            template=("$BOX_TL$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_TR" "║░░░░░░░░░║" "║░░░░░░░░░║" "║░░░░░░░░░║" "$BOX_BL$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_BR")
+        else
+            case $d in
+                1) template=("$BOX_TL$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_TR" "║         ║" "║    ●    ║" "║         ║" "$BOX_BL$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_BR") ;;
+                2) template=("$BOX_TL$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_TR" "║  ●      ║" "║         ║" "║      ●  ║" "$BOX_BL$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_BR") ;;
+                3) template=("$BOX_TL$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_TR" "║  ●      ║" "║    ●    ║" "║      ●  ║" "$BOX_BL$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_BR") ;;
+                4) template=("$BOX_TL$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_TR" "║  ●   ●  ║" "║         ║" "║  ●   ●  ║" "$BOX_BL$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_BR") ;;
+                5) template=("$BOX_TL$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_TR" "║  ●   ●  ║" "║    ●    ║" "║  ●   ●  ║" "$BOX_BL$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_BR") ;;
+                6) template=("$BOX_TL$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_TR" "║  ●   ●  ║" "║  ●   ●  ║" "║  ●   ●  ║" "$BOX_BL$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_BR") ;;
+                *) template=("$BOX_TL$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_TR" "║         ║" "║         ║" "║         ║" "$BOX_BL$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_H$BOX_BR") ;;
+            esac
+        fi
+        for i in {0..4}; do
+            lines[$i]+=" ${template[$i]} "
+        done
+    done
+
+    for i in {0..4}; do
+        print_line "${lines[$i]}"
+    done
+}
+
 # Render Whiskey Glass
 render_whiskey() {
     local level=$1
@@ -256,6 +287,34 @@ EOF
         echo -e "\n  ${TXT[prompt_exit]}"
         if read -n 1; then break; fi
     done
+}
+
+caught_cheating() {
+    local caught_msg=${1:TXT[msg_caught]}
+    update_board_width
+    clear_screen
+    echo -e "${RED}"
+    type_text "  ${caught_msg}" 0.1
+    sleep 1
+    type_text "  Der Dealer zieht seine Waffe..." 0.1
+    sleep 1
+    type_text "  * PENG! *" 0.05
+    sleep 2
+
+    clear_screen
+    echo -e "${RED}"
+    cat << "EOF"
+  _____ ______  _____ _    _  _____ _    _ _______
+ / ____|  ____|/ ____| |  | |/ ____| |  | |__   __|
+| |  __| |__  | (___ | |  | | |    | |__| |  | |
+| | |_ |  __|  \___ \| |  | | |    |  __  |  | |
+| |__| | |____ ____) | |__| | |____| |  | |  | |
+ \_____|______|_____/ \____/ \_____|_|  |_|  |_|
+EOF
+    echo -e "\n          ${YELLOW}N I C H T   W I L L K O M M E N${NC}"
+    echo -e "\n  Du wurdest beim Schummeln erwischt und aus dem Saloon geworfen."
+    echo -e "  Dein Steckbrief hängt nun an jeder Tür."
+    exit 0
 }
 
 # Global variable for the resize callback
