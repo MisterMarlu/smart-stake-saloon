@@ -407,17 +407,23 @@ play_texas_holdem() {
         if [[ "$p_score" > "$d_score" ]]; then
             dealer_talk "loss"
             th_display_poker_board "true"
+            echo -e "  ${TXT[label_your_hand]}: $(th_get_hand_name $p_score)"
+            echo -e "  ${TXT[label_dealer]}: $(th_get_hand_name $d_score)"
             printf "${GREEN}  ${TXT[poker_msg_win]}${NC}\n" "$POT"
             BALANCE=$((BALANCE + POT))
             WINS=$((WINS + 1))
         elif [[ "$p_score" < "$d_score" ]]; then
             dealer_talk "win"
             th_display_poker_board "true"
+            echo -e "  ${TXT[label_your_hand]}: $(th_get_hand_name $p_score)"
+            echo -e "  ${TXT[label_dealer]}: $(th_get_hand_name $d_score)"
             printf "${RED}  ${TXT[poker_msg_loss]}${NC}\n" "$POT"
             LOSSES=$((LOSSES + 1))
         else
             dealer_talk "push"
             th_display_poker_board "true"
+            echo -e "  ${TXT[label_your_hand]}: $(th_get_hand_name $p_score)"
+            echo -e "  ${TXT[label_dealer]}: $(th_get_hand_name $d_score)"
             echo -e "${YELLOW}  ${TXT[poker_msg_push]}${NC}"
             BALANCE=$((BALANCE + POT / 2))
             PUSHES=$((PUSHES + 1))

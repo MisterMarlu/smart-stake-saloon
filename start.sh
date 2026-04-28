@@ -12,9 +12,14 @@ source "$SCRIPT_DIR/core/engine.sh"
 source "$SCRIPT_DIR/core/ui.sh"
 
 # Load Games
-for game_file in "$SCRIPT_DIR/games"/*.sh; do
-    if [[ -f "$game_file" ]]; then
-        source "$game_file"
+for game_dir in "$SCRIPT_DIR/games"/*; do
+    if [[ -d "$game_dir" ]]; then
+        if [[ -f "$game_dir/strings.sh" ]]; then
+            source "$game_dir/strings.sh"
+        fi
+        if [[ -f "$game_dir/logic.sh" ]]; then
+            source "$game_dir/logic.sh"
+        fi
     fi
 done
 
