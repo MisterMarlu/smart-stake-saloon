@@ -1,0 +1,175 @@
+#!/usr/bin/env bash
+
+# Smart Stake Saloon - Launcher
+# This script handles auto-updates and starts the game.
+
+set -e
+
+# Configurable Repository URL
+REPO_URL="https://github.com/MisterMarlu/smart-stake-saloon.git"
+STABLE_BRANCH="main"
+
+INSTALL_DIR="$HOME/.local/share/smart-stake-saloon"
+STATE_DIR="$HOME/.local/state/smart-stake-saloon"
+CONFIG_DIR="$HOME/.config/smart-stake-saloon"
+VERSION_FILE="$INSTALL_DIR/VERSION"
+UPDATE_CHECK_FILE="$STATE_DIR/last_update_check"
+
+# Ensure directories exist
+mkdir -p "$STATE_DIR"
+mkdir -p "$CONFIG_DIR"
+
+show_help() {
+    echo "Smart Stake Saloon - Terminal Game"
+    echo ""
+    echo "Usage: smart-stake-saloon [command] [options]"
+    echo ""
+    echo "Commands:"
+    echo "  (none)          Start the game (with auto-update check)"
+    echo "  update          Force a manual update"
+    echo "  version         Show installed version"
+    echo "  doctor          Run a health check"
+    echo "  help, --help    Show this help message"
+    echo ""
+    echo "Options:"
+    echo "  --no-update     Skip auto-update check for this run"
+    echo ""
+}
+
+show_version() {
+    if [[ -f "$VERSION_FILE" ]]; then
+        echo "Smart Stake Saloon version $(cat "$VERSION_FILE")"
+    else
+        echo "Smart Stake Saloon (unknown version)"
+    fi
+    if cd "$INSTALL_DIR" 2>/dev/null && git rev-parse --short HEAD >/dev/null 2>&1; then
+        echo "Commit: $(git rev-parse --short HEAD)"
+    fi
+}
+
+run_doctor() {
+    echo "Running health check..."
+
+    # Bash
+    if command -v bash >/dev/null 2>&1; then
+        echo "[✓] Bash is available ($(bash --version | head -n 1))"
+    else
+        echo "[!] Bash is NOT available"
+    fi
+
+    # Git
+    if command -v git >/dev/null 2>&1; then
+        echo "[✓] Git is available ($(git --version | head -n 1))"
+    else
+        echo "[!] Git is NOT available"
+    fi
+
+    # Install Dir
+    if [[ -d "$INSTALL_DIR" ]]; then
+        echo "[✓] Install directory exists: $INSTALL_DIR"
+        if [[ -d "$INSTALL_DIR/.git" ]]; then
+             echo "[✓] Install directory is a Git repository"
+             REMOTE_URL=$(cd "$INSTALL_DIR" && git remote get-url origin 2>/dev/null || echo "NONE")
+             echo "[✓] Git remote: $REMOTE_URL"
+        else
+             echo "[!] Install directory is NOT a Git repository"
+        fi
+    else
+        echo "[!] Install directory does NOT exist"
+    fi
+
+    # Entry point
+    if [[ -f "$INSTALL_DIR/start.sh" ]]; then
+        echo "[✓] Game entry point exists"
+    else
+        echo "[!] Game entry point (start.sh) is missing"
+    fi
+
+    # PATH
+    if [[ ":$PATH:" == *":$HOME/.local/bin:"* ]]; then
+        echo "[✓] ~/.local/bin is in PATH"
+    else
+        echo "[!] ~/.local/bin is NOT in PATH"
+    fi
+
+    # Launcher
+    if command -v smart-stake-saloon >/dev/null 2>&1; then
+        echo "[✓] Launcher command exists and is executable"
+    else
+        echo "[!] Launcher command not found in PATH"
+    fi
+}
+
+do_update() {
+    echo "Checking for updates..."
+    if ! cd "$INSTALL_DIR" 2>/dev/null; then
+        echo "Error: Could not access installation directory."
+        return 1
+    fi
+
+    if ! command -v git >/dev/null 2>&1; then
+        echo "Error: Git is not installed. Cannot update."
+        return 1
+    fi
+
+    # Try to fetch and pull
+    # We use --rebase to avoid merge commits if the user somehow changed things locally
+    if git pull origin "$STABLE_BRANCH" --rebase >/dev/null 2>&1; then
+        echo "Update successful."
+        date +%s > "$UPDATE_CHECK_FILE"
+        return 0
+    else
+        echo "Warning: Update failed (network issue or local changes). Continuing with current version."
+        return 1
+    fi
+}
+
+auto_update() {
+    # Check if we checked today
+    if [[ -f "$UPDATE_CHECK_FILE" ]]; then
+        LAST_CHECK=$(cat "$UPDATE_CHECK_FILE")
+        NOW=$(date +%s)
+        # 86400 seconds = 1 day
+        if (( NOW - LAST_CHECK < 86400 )); then
+            return 0
+        fi
+    fi
+    do_update || true # Fail silently for auto-update
+    date +%s > "$UPDATE_CHECK_FILE"
+}
+
+# Main logic
+COMMAND="${1:-}"
+
+case "$COMMAND" in
+    update)
+        do_update
+        ;;
+    version)
+        show_version
+        ;;
+    doctor)
+        run_doctor
+        ;;
+    help|--help)
+        show_help
+        ;;
+    --no-update)
+        shift
+        if [[ -f "$INSTALL_DIR/start.sh" ]]; then
+            exec bash "$INSTALL_DIR/start.sh" "$@"
+        else
+            echo "Error: Game not found at $INSTALL_DIR/start.sh"
+            exit 1
+        fi
+        ;;
+    *)
+        auto_update
+        if [[ -f "$INSTALL_DIR/start.sh" ]]; then
+            exec bash "$INSTALL_DIR/start.sh" "$@"
+        else
+            echo "Error: Game not found. Please run the installer."
+            exit 1
+        fi
+        ;;
+esac
