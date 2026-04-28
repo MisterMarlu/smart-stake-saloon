@@ -6,7 +6,7 @@
 set -e
 
 # Configurable Repository URL
-REPO_URL="https://github.com/username/smart-stake-saloon.git"
+REPO_URL="ssh://git@github.com/username/smart-stake-saloon.git"
 STABLE_BRANCH="main"
 
 INSTALL_DIR="$HOME/.local/share/smart-stake-saloon"
