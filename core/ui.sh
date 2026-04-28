@@ -119,7 +119,7 @@ draw_grid_line() {
 print_line() {
     local content="$1"
     local esc=$(printf '\033')
-    local stripped=$(printf '%s' "$content" | sed "s/${esc}\[[0-9;]*m//g")
+    local stripped=$(printf '%s' "$content" | LC_ALL=C sed "s/${esc}\[[0-9;]*m//g")
     local len=${#stripped}
     local padding=$((BOARD_WIDTH - 2 - len))
     (( padding < 0 )) && padding=0
