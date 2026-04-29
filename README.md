@@ -18,7 +18,7 @@ Smart Stake Saloon is a modular Bash-based terminal game suite, featuring classi
 To install Smart Stake Saloon, clone this repository and run the installer:
 
 ```bash
-git clone git@github.com/MisterMarlu/smart-stake-saloon.git
+git clone git@github.com:MisterMarlu/smart-stake-saloon.git
 cd smart-stake-saloon
 bash install.sh
 ```
