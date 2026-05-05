@@ -15,10 +15,26 @@ Smart Stake Saloon is a modular Bash-based terminal game suite, featuring classi
 
 ## Installation
 
-To install Smart Stake Saloon, clone this repository and run the installer:
+### Quick Install (recommended)
 
 ```bash
-git clone git@github.com:MisterMarlu/smart-stake-saloon.git
+curl -fsSL https://raw.githubusercontent.com/MisterMarlu/smart-stake-saloon/main/install.sh | bash
+```
+
+### Manual Install
+
+If you prefer to inspect the installer before running it:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/MisterMarlu/smart-stake-saloon/main/install.sh -o install.sh
+# Review the file, then:
+bash install.sh
+```
+
+Or clone and install directly:
+
+```bash
+git clone https://github.com/MisterMarlu/smart-stake-saloon.git
 cd smart-stake-saloon
 bash install.sh
 ```
@@ -50,7 +66,7 @@ smart-stake-saloon
 
 ## How Auto-Update Works
 The game checks for updates at most once per day on startup.
-- It pulls the latest changes from the `main` branch on GitHub.
+- It fetches and applies the latest changes from the `main` branch on GitHub.
 - If the update fails (e.g., no internet connection), the game continues with the local version.
 - Updates never require `sudo` privileges.
 

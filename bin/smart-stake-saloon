@@ -6,7 +6,7 @@
 set -e
 
 # Configurable Repository URL
-REPO_URL="git@github.com/MisterMarlu/smart-stake-saloon.git"
+REPO_URL="https://github.com/MisterMarlu/smart-stake-saloon.git"
 STABLE_BRANCH="main"
 
 INSTALL_DIR="$HOME/.local/share/smart-stake-saloon"
@@ -108,25 +108,39 @@ run_doctor() {
 }
 
 do_update() {
-    echo "Checking for updates..."
+    local mode="${1:-manual}"
+
     if ! cd "$INSTALL_DIR" 2>/dev/null; then
-        echo "Error: Could not access installation directory."
+        [[ "$mode" == "manual" ]] && echo "Error: Could not access installation directory."
         return 1
     fi
 
     if ! command -v git >/dev/null 2>&1; then
-        echo "Error: Git is not installed. Cannot update."
+        [[ "$mode" == "manual" ]] && echo "Error: Git is not installed. Cannot update."
         return 1
     fi
 
-    # Try to fetch and pull
-    # We use --rebase to avoid merge commits if the user somehow changed things locally
-    if git pull origin "$STABLE_BRANCH" --rebase >/dev/null 2>&1; then
-        echo "Update successful."
+    local version_before
+    version_before=$(cat "$VERSION_FILE" 2>/dev/null || echo "unknown")
+
+    [[ "$mode" == "manual" ]] && echo "Checking for updates..."
+
+    if git fetch origin "$STABLE_BRANCH" >/dev/null 2>&1 && \
+       git reset --hard "origin/$STABLE_BRANCH" >/dev/null 2>&1; then
         date +%s > "$UPDATE_CHECK_FILE"
+        if [[ "$mode" == "manual" ]]; then
+            local version_after
+            version_after=$(cat "$VERSION_FILE" 2>/dev/null || echo "unknown")
+            if [[ "$version_before" != "$version_after" ]]; then
+                echo "Updated: $version_before -> $version_after"
+            else
+                echo "Already up to date (version $version_after)."
+            fi
+        fi
         return 0
     else
-        echo "Warning: Update failed (network issue or local changes). Continuing with current version."
+        [[ "$mode" == "manual" ]] && \
+            echo "Warning: Update failed (network issue or local changes). Continuing with current version."
         return 1
     fi
 }
@@ -141,7 +155,7 @@ auto_update() {
             return 0
         fi
     fi
-    do_update || true # Fail silently for auto-update
+    do_update "auto" || true
     date +%s > "$UPDATE_CHECK_FILE"
 }
 
@@ -150,7 +164,7 @@ COMMAND="${1:-}"
 
 case "$COMMAND" in
     update)
-        do_update
+        do_update "manual"
         ;;
     version)
         show_version

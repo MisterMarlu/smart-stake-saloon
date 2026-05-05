@@ -6,7 +6,7 @@
 set -e
 
 # Configurable Repository URL
-REPO_URL="git@github.com:MisterMarlu/smart-stake-saloon.git"
+REPO_URL="https://github.com/MisterMarlu/smart-stake-saloon.git"
 STABLE_BRANCH="main"
 
 INSTALL_DIR="$HOME/.local/share/smart-stake-saloon"
@@ -40,7 +40,11 @@ if [[ -d "$INSTALL_DIR" ]]; then
 
         # Check if it's the correct repository
         CURRENT_REMOTE=$(git remote get-url origin 2>/dev/null || echo "")
-        if [[ "$CURRENT_REMOTE" != "$REPO_URL" ]]; then
+        NORMALIZED_REMOTE="${CURRENT_REMOTE#git@github.com:}"
+        NORMALIZED_REMOTE="${NORMALIZED_REMOTE#https://github.com/}"
+        NORMALIZED_TARGET="${REPO_URL#https://github.com/}"
+
+        if [[ "$NORMALIZED_REMOTE" != "$NORMALIZED_TARGET" ]]; then
             echo "Warning: Existing directory $INSTALL_DIR has a different remote: $CURRENT_REMOTE"
             echo "Expected: $REPO_URL"
             echo "Aborting to avoid overwriting an unrelated repository."
