@@ -63,14 +63,86 @@ bj_display_board() {
     fi
 
     print_line ""
-    print_line "  ${GREEN}${TXT[label_your_hand]}:${NC}"
-    render_cards "false" "${PLAYER_HAND[@]}"
-    print_line "  ${TXT[label_your_value]}: ${YELLOW}$(bj_calculate_hand "${PLAYER_HAND[@]}")${NC}"
+    local _phc=${#PLAYER_HANDS[@]}
+    if [ "${_phc:-0}" -le 1 ]; then
+        print_line "  ${GREEN}${TXT[label_your_hand]}:${NC}"
+        render_cards "false" "${PLAYER_HAND[@]}"
+        print_line "  ${TXT[label_your_value]}: ${YELLOW}$(bj_calculate_hand "${PLAYER_HAND[@]}")${NC}"
+    else
+        local _hidx _marker _hbet
+        local -a _h=()
+        for _hidx in "${!PLAYER_HANDS[@]}"; do
+            _marker=""
+            [ "$_hidx" = "${ACTIVE_HAND_INDEX:-0}" ] && _marker=" ${YELLOW}<<${NC}"
+            _hbet=${PLAYER_HAND_BETS[$_hidx]}
+            print_line "  ${GREEN}${TXT[label_your_hand]} $((_hidx + 1)):${NC} (${YELLOW}${_hbet}€${NC})${_marker}"
+            read -r -a _h <<< "${PLAYER_HANDS[$_hidx]}"
+            render_cards "false" "${_h[@]}"
+            print_line "  ${TXT[label_your_value]}: ${YELLOW}$(bj_calculate_hand "${_h[@]}")${NC}"
+            print_line ""
+        done
+    fi
 
     print_line ""
     print_line "  ${YELLOW}${TXT[label_your_whiskey]}:${NC}"
     render_whiskey $WHISKEY_LEVEL
     draw_line "$BOX_BL" "$BOX_H" "$BOX_BR"
+}
+
+bj_get_rank() {
+    local card=$1
+    local s
+    for s in "$HEARTS" "$DIAMONDS" "$SPADES" "$CLUBS"; do
+        if [[ "$card" == *"$s" ]]; then
+            echo "${card%$s}"
+            return
+        fi
+    done
+}
+
+bj_can_split() {
+    [ ${#PLAYER_HAND[@]} -ne 2 ] && return 1
+    [ ${#PLAYER_HANDS[@]} -ge 4 ] && return 1
+    local idx=${ACTIVE_HAND_INDEX:-0}
+    [ "${PLAYER_HAND_FROM_ACES[$idx]:-0}" = "1" ] && return 1
+    local current_bet=${PLAYER_HAND_BETS[$idx]:-$BET}
+    [ $BALANCE -lt $current_bet ] && return 1
+    local v1=$(get_card_value "${PLAYER_HAND[0]}")
+    local v2=$(get_card_value "${PLAYER_HAND[1]}")
+    [ "$v1" != "$v2" ] && return 1
+    return 0
+}
+
+bj_split() {
+    local idx=${ACTIVE_HAND_INDEX:-0}
+    local original_bet=${PLAYER_HAND_BETS[$idx]:-$BET}
+
+    BALANCE=$((BALANCE - original_bet))
+
+    local card_a=${PLAYER_HAND[0]}
+    local card_b=${PLAYER_HAND[1]}
+    local is_aces=0
+    [ "$(bj_get_rank "$card_a")" = "A" ] && is_aces=1
+
+    PLAYER_HAND=("$card_a")
+    draw_card; PLAYER_HAND+=("$LAST_DRAWN_CARD")
+    PLAYER_HANDS[$idx]="${PLAYER_HAND[*]}"
+
+    local -a new_hand=("$card_b")
+    draw_card; new_hand+=("$LAST_DRAWN_CARD")
+    PLAYER_HANDS+=("${new_hand[*]}")
+    PLAYER_HAND_BETS+=("$original_bet")
+
+    PLAYER_HAND_FROM_ACES[$idx]=$is_aces
+    PLAYER_HAND_FROM_ACES+=("$is_aces")
+    PLAYER_HAND_RESULTS+=("active")
+
+    printf "${YELLOW}  ${TXT[msg_split]}${NC}\n" "$original_bet"
+    [ $is_aces -eq 1 ] && echo -e "${YELLOW}  ${TXT[msg_split_aces]}${NC}"
+    sleep 1
+    bj_display_board "false"
+    sleep 1
+    return 0
 }
 
 bj_calculate_hand() {
@@ -97,6 +169,11 @@ bj_calculate_hand() {
 bj_deal_initial() {
     PLAYER_HAND=()
     DEALER_HAND=()
+    PLAYER_HANDS=()
+    PLAYER_HAND_BETS=()
+    PLAYER_HAND_FROM_ACES=()
+    PLAYER_HAND_RESULTS=()
+    ACTIVE_HAND_INDEX=0
     DEALER_MESSAGE="${TXT[msg_initial_deal]}"
 
     draw_card; PLAYER_HAND+=("$LAST_DRAWN_CARD"); bj_display_board "false"; sleep 0.5
@@ -133,16 +210,33 @@ bj_check_initial_blackjack() {
     return 0
 }
 
-bj_player_turn() {
+bj_play_one_hand() {
+    local idx=$1
+    ACTIVE_HAND_INDEX=$idx
+    BET=${PLAYER_HAND_BETS[$idx]}
+
+    # Hand stems from split aces: exactly one extra card, then auto-stand.
+    if [ "${PLAYER_HAND_FROM_ACES[$idx]:-0}" = "1" ]; then
+        bj_display_board "false"
+        sleep 1
+        PLAYER_HAND_RESULTS[$idx]="stand"
+        return
+    fi
+
     local can_double=1
     while true; do
         bj_display_board "false"
         local opts="${TXT[options_hit]}, ${TXT[options_stand]}"
         [ $can_double -eq 1 ] && [ $BALANCE -ge $BET ] && opts+=", ${TXT[options_double]}"
-        [ $can_double -eq 1 ] && opts+=", ${TXT[options_surrender]}"
+        bj_can_split && opts+=", ${TXT[options_split]}"
+        [ $can_double -eq 1 ] && [ ${#PLAYER_HANDS[@]} -eq 1 ] && opts+=", ${TXT[options_surrender]}"
         opts+=", ${TXT[options_rules]}"
 
-        printf "  ${TXT[prompt_action]}: ($opts): "
+        if [ ${#PLAYER_HANDS[@]} -gt 1 ]; then
+            printf "  ${TXT[label_playing_hand]} ${TXT[prompt_action]}: ($opts): " $((idx + 1)) ${#PLAYER_HANDS[@]}
+        else
+            printf "  ${TXT[prompt_action]}: ($opts): "
+        fi
         if ! read -n 1 -s choice; then continue; fi
         echo ""
 
@@ -154,33 +248,66 @@ bj_player_turn() {
             h)
                 dealer_talk "idle"
                 draw_card; PLAYER_HAND+=("$LAST_DRAWN_CARD")
+                PLAYER_HANDS[$idx]="${PLAYER_HAND[*]}"
                 bj_display_board "false"
                 sleep 0.5
                 can_double=0
                 if [ $(bj_calculate_hand "${PLAYER_HAND[@]}") -gt 21 ]; then
-                    return 1
+                    PLAYER_HAND_RESULTS[$idx]="bust"
+                    return
                 fi
                 ;;
             s)
-                return 0
+                PLAYER_HAND_RESULTS[$idx]="stand"
+                return
                 ;;
             d)
                 if [ $can_double -eq 1 ] && [ $BALANCE -ge $BET ]; then
                     BALANCE=$((BALANCE - BET))
                     BET=$((BET * 2))
+                    PLAYER_HAND_BETS[$idx]=$BET
                     draw_card; PLAYER_HAND+=("$LAST_DRAWN_CARD")
+                    PLAYER_HANDS[$idx]="${PLAYER_HAND[*]}"
                     bj_display_board "false"
                     sleep 1
-                    [ $(bj_calculate_hand "${PLAYER_HAND[@]}") -gt 21 ] && return 1
-                    return 0
+                    if [ $(bj_calculate_hand "${PLAYER_HAND[@]}") -gt 21 ]; then
+                        PLAYER_HAND_RESULTS[$idx]="bust"
+                    else
+                        PLAYER_HAND_RESULTS[$idx]="stand"
+                    fi
+                    return
+                fi
+                ;;
+            p)
+                if bj_can_split; then
+                    bj_split
+                    can_double=1
+                    # If we split aces, this hand is now done (one card only).
+                    if [ "${PLAYER_HAND_FROM_ACES[$idx]:-0}" = "1" ]; then
+                        PLAYER_HAND_RESULTS[$idx]="stand"
+                        return
+                    fi
+                else
+                    echo -e "${RED}  ${TXT[msg_split_invalid]}${NC}"
+                    sleep 1
                 fi
                 ;;
             u)
-                if [ $can_double -eq 1 ]; then
-                    return 2
+                if [ $can_double -eq 1 ] && [ ${#PLAYER_HANDS[@]} -eq 1 ]; then
+                    PLAYER_HAND_RESULTS[$idx]="surrender"
+                    return
                 fi
                 ;;
         esac
+    done
+}
+
+bj_player_turn() {
+    local idx=0
+    while [ $idx -lt ${#PLAYER_HANDS[@]} ]; do
+        read -r -a PLAYER_HAND <<< "${PLAYER_HANDS[$idx]}"
+        bj_play_one_hand $idx
+        idx=$((idx + 1))
     done
 }
 
@@ -198,50 +325,79 @@ bj_dealer_turn() {
     done
 }
 
-bj_handle_outcome() {
-    local status=$1
-    if [ "$status" -eq 2 ]; then
-        bj_display_board "true"
-        local refund=$((BET / 2))
-        printf "${YELLOW}  ${TXT[msg_surrendered]}${NC}\n" "$refund"
-        BALANCE=$((BALANCE + refund))
-        LOSSES=$((LOSSES + 1))
-    elif [ "$status" -eq 1 ]; then
-        dealer_talk "bust"
-        bj_display_board "true"
-        sleep 1
-        printf "${RED}  ${TXT[msg_bust]}${NC}\n" "$BET"
-        LOSSES=$((LOSSES + 1))
-    else
-        bj_dealer_turn
-        local p_final=$(bj_calculate_hand "${PLAYER_HAND[@]}")
-        local d_final=$(bj_calculate_hand "${DEALER_HAND[@]}")
+bj_resolve_hands() {
+    local need_dealer=0 idx
+    for idx in "${!PLAYER_HAND_RESULTS[@]}"; do
+        [ "${PLAYER_HAND_RESULTS[$idx]}" = "stand" ] && { need_dealer=1; break; }
+    done
 
-        if [ $d_final -gt 21 ]; then
-            dealer_talk "bust"
-            bj_display_board "true"
-            printf "${GREEN}  ${TXT[msg_dealer_bust]}${NC}\n" "$BET"
-            BALANCE=$((BALANCE + BET * 2))
-            WINS=$((WINS + 1))
-        elif [ $p_final -gt $d_final ]; then
-            dealer_talk "loss"
-            bj_display_board "true"
-            printf "${GREEN}  ${TXT[msg_win]}${NC}\n" "$BET"
-            BALANCE=$((BALANCE + BET * 2))
-            WINS=$((WINS + 1))
-        elif [ $d_final -gt $p_final ]; then
-            dealer_talk "win"
-            bj_display_board "true"
-            printf "${RED}  ${TXT[msg_dealer_win]}${NC}\n" "$d_final" "$BET"
-            LOSSES=$((LOSSES + 1))
+    ACTIVE_HAND_INDEX=-1
+    [ $need_dealer -eq 1 ] && bj_dealer_turn
+
+    local d_final=$(bj_calculate_hand "${DEALER_HAND[@]}")
+    local total_committed=0 total_returned=0
+    local -a outcome_lines=()
+    local prefix line
+
+    for idx in "${!PLAYER_HANDS[@]}"; do
+        local -a h=()
+        read -r -a h <<< "${PLAYER_HANDS[$idx]}"
+        local hbet=${PLAYER_HAND_BETS[$idx]}
+        local status=${PLAYER_HAND_RESULTS[$idx]}
+        local p_val=$(bj_calculate_hand "${h[@]}")
+        total_committed=$((total_committed + hbet))
+
+        if [ ${#PLAYER_HANDS[@]} -gt 1 ]; then
+            prefix=$(printf "${YELLOW}  ${TXT[label_hand_result]}${NC} " $((idx + 1)))
         else
-            dealer_talk "push"
-            bj_display_board "true"
-            echo -e "${YELLOW}  ${TXT[msg_push]}${NC}"
-            BALANCE=$((BALANCE + BET))
-            PUSHES=$((PUSHES + 1))
+            prefix="  "
         fi
+
+        if [ "$status" = "surrender" ]; then
+            local refund=$((hbet / 2))
+            BALANCE=$((BALANCE + refund))
+            total_returned=$((total_returned + refund))
+            LOSSES=$((LOSSES + 1))
+            line=$(printf "${prefix}${YELLOW}${TXT[msg_surrendered]}${NC}" "$refund")
+        elif [ "$status" = "bust" ]; then
+            LOSSES=$((LOSSES + 1))
+            line=$(printf "${prefix}${RED}${TXT[msg_bust]}${NC}" "$hbet")
+        elif [ $d_final -gt 21 ]; then
+            BALANCE=$((BALANCE + hbet * 2))
+            total_returned=$((total_returned + hbet * 2))
+            WINS=$((WINS + 1))
+            line=$(printf "${prefix}${GREEN}${TXT[msg_dealer_bust]}${NC}" "$hbet")
+        elif [ $p_val -gt $d_final ]; then
+            BALANCE=$((BALANCE + hbet * 2))
+            total_returned=$((total_returned + hbet * 2))
+            WINS=$((WINS + 1))
+            line=$(printf "${prefix}${GREEN}${TXT[msg_win]}${NC}" "$hbet")
+        elif [ $d_final -gt $p_val ]; then
+            LOSSES=$((LOSSES + 1))
+            line=$(printf "${prefix}${RED}${TXT[msg_dealer_win]}${NC}" "$d_final" "$hbet")
+        else
+            BALANCE=$((BALANCE + hbet))
+            total_returned=$((total_returned + hbet))
+            PUSHES=$((PUSHES + 1))
+            line=$(printf "${prefix}${YELLOW}${TXT[msg_push]}${NC}")
+        fi
+        outcome_lines+=("$line")
+    done
+
+    if [ $total_returned -gt $total_committed ]; then
+        dealer_talk "loss"
+    elif [ $total_returned -lt $total_committed ]; then
+        dealer_talk "win"
+    else
+        dealer_talk "push"
     fi
+
+    ACTIVE_HAND_INDEX=-1
+    bj_display_board "true"
+    for line in "${outcome_lines[@]}"; do
+        echo -e "$line"
+    done
+    sleep 2
 }
 
 bj_render_rules() {
@@ -269,9 +425,15 @@ play_blackjack() {
         place_bet || break
         bj_deal_initial
 
+        PLAYER_HANDS=("${PLAYER_HAND[*]}")
+        PLAYER_HAND_BETS=("$BET")
+        PLAYER_HAND_FROM_ACES=(0)
+        PLAYER_HAND_RESULTS=("active")
+        ACTIVE_HAND_INDEX=0
+
         if bj_check_initial_blackjack; then
             bj_player_turn
-            bj_handle_outcome $?
+            bj_resolve_hands
         fi
 
         whiskey_watch_event
